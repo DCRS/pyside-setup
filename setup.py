@@ -17,7 +17,7 @@ without rebuilding entire PySide every time:
   python setup.py bdist_egg --only-package --qmake=c:\Qt\4.8.5\bin\qmake.exe --cmake=c:\tools\cmake\bin\cmake.exe --opnessl=c:\libs\OpenSSL32bit\bin
 
 REQUIREMENTS:
-- Python: 2.6, 2.7, 3.2, 3.3 and 3.4 is supported
+- Python: 2.6, 2.7, 3.2, 3.3 and 3.4 is supported. 3.5 is enabled
 - Cmake: Specify the path to cmake with --cmake option or add cmake to the system path.
 - Qt: 4.6, 4.7 and 4.8 is supported. Specify the path to qmake with --qmake option or add qmake to the system path.
 
@@ -224,8 +224,8 @@ if OPTION_NOEXAMPLES:
     for idx, item in enumerate(submodules[__version__]):
         if item[0] == 'pyside-examples':
             del submodules[__version__][idx]
-    
-    
+
+
 # Initialize, pull and checkout submodules
 if os.path.isdir(".git") and not OPTION_IGNOREGIT and not OPTION_ONLYPACKAGE:
     print("Initializing submodules for PySide version %s" % __version__)
@@ -310,7 +310,7 @@ class pyside_build(_build):
         self.build_type = "Release"
         self.qtinfo = None
         self.build_tests = False
-    
+
     def run(self):
         platform_arch = platform.architecture()[0]
         log.info("Python architecture is %s" % platform_arch)
@@ -360,7 +360,7 @@ class pyside_build(_build):
             raise DistutilsSetupError(
                 "Failed to find qmake."
                 " Please specify the path to qmake with --qmake parameter.")
-        
+
         # Prepare parameters
         py_executable = sys.executable
         py_version = "%s.%s" % (sys.version_info[0], sys.version_info[1])
@@ -410,7 +410,7 @@ class pyside_build(_build):
                 # the lib and the normal one. This allows a debug PySide to
                 # be built with a non-debug Python.
                 lib_exts = [dbgPostfix + e for e in lib_exts] + lib_exts
-                
+
             libs_tried = []
             for lib_ext in lib_exts:
                 lib_name = "libpython%s%s%s" % (py_version, lib_suff, lib_ext)
@@ -449,25 +449,25 @@ class pyside_build(_build):
         if not qt_version:
             log.error("Failed to query the Qt version with qmake %s" % qtinfo.qmake_path)
             sys.exit(1)
-        
+
         # Update the PATH environment variable
         update_env_path([py_scripts_dir, qt_dir])
-        
+
         build_name = "py%s-qt%s-%s-%s" % \
             (py_version, qt_version, platform.architecture()[0], build_type.lower())
-        
+
         script_dir = os.getcwd()
         sources_dir = os.path.join(script_dir, "sources")
         build_dir = os.path.join(script_dir, "pyside_build", "%s" % build_name)
         install_dir = os.path.join(script_dir, "pyside_install", "%s" % build_name)
-        
+
         # Try to ensure that tools built by this script (such as shiboken)
         # are found before any that may already be installed on the system.
         update_env_path([os.path.join(install_dir, 'bin')])
-        
-        # Tell cmake to look here for *.cmake files 
+
+        # Tell cmake to look here for *.cmake files
         os.environ['CMAKE_PREFIX_PATH'] = install_dir
-        
+
         self.make_path = make_path
         self.make_generator = make_generator
         self.debug = OPTION_DEBUG
@@ -484,7 +484,7 @@ class pyside_build(_build):
         self.qtinfo = qtinfo
         self.site_packages_dir = get_python_lib(1, 0, prefix=install_dir)
         self.build_tests = OPTION_BUILDTESTS
-        
+
         log.info("=" * 30)
         log.info("Package version: %s" % __version__)
         log.info("Build type: %s" % self.build_type)
@@ -513,7 +513,7 @@ class pyside_build(_build):
         log.info("-" * 3)
         log.info("OpenSSL libs: %s" % OPTION_OPENSSL)
         log.info("=" * 30)
-        
+
         # Prepare folders
         if not os.path.exists(self.sources_dir):
             log.info("Creating sources folder %s..." % self.sources_dir)
@@ -524,7 +524,7 @@ class pyside_build(_build):
         if not os.path.exists(self.install_dir):
             log.info("Creating install folder %s..." % self.install_dir)
             os.makedirs(self.install_dir)
-        
+
         if not OPTION_ONLYPACKAGE:
             # Build extensions
             for ext in ['shiboken', 'pyside', 'pyside-tools']:
@@ -535,7 +535,7 @@ class pyside_build(_build):
 
         # Prepare packages
         self.prepare_packages()
-        
+
         # Build packages
         _build.run(self)
 
@@ -555,7 +555,7 @@ class pyside_build(_build):
 
     def build_extension(self, extension):
         log.info("Building module %s..." % extension)
-        
+
         # Prepare folders
         os.chdir(self.build_dir)
         module_build_dir = os.path.join(self.build_dir,  extension)
@@ -569,9 +569,9 @@ class pyside_build(_build):
         log.info("Creating module build folder %s..." % module_build_dir)
         os.makedirs(module_build_dir)
         os.chdir(module_build_dir)
-        
+
         module_src_dir = os.path.join(self.sources_dir, extension)
-        
+
         # Build module
         cmake_cmd = [
             OPTION_CMAKE,
@@ -604,34 +604,34 @@ class pyside_build(_build):
             cmake_cmd.append("-DCMAKE_INSTALL_RPATH_USE_LINK_PATH=yes")
             if sys.version_info[0] > 2:
                 cmake_cmd.append("-DUSE_PYTHON3=ON")
-        
+
         if sys.platform == 'darwin':
             cmake_cmd.append('-DALTERNATIVE_QT_INCLUDE_DIR=' + self.qtinfo.headers_dir)
-            
+
             if OPTION_OSXARCH:
-                # also tell cmake which architecture to use 
+                # also tell cmake which architecture to use
                 cmake_cmd.append("-DCMAKE_OSX_ARCHITECTURES:STRING={}".format(OPTION_OSXARCH))
 
         log.info("Configuring module %s (%s)..." % (extension,  module_src_dir))
         if run_process(cmake_cmd) != 0:
             raise DistutilsSetupError("Error configuring " + extension)
-        
+
         log.info("Compiling module %s..." % extension)
         cmd_make = [self.make_path]
         if OPTION_JOBS:
             cmd_make.append(OPTION_JOBS)
         if run_process(cmd_make) != 0:
             raise DistutilsSetupError("Error compiling " + extension)
-        
+
         if extension.lower() == "shiboken":
             log.info("Generating Shiboken documentation %s..." % extension)
             if run_process([self.make_path, "doc"]) != 0:
                 raise DistutilsSetupError("Error generating documentation " + extension)
-        
+
         log.info("Installing module %s..." % extension)
         if run_process([self.make_path, "install/fast"]) != 0:
             raise DistutilsSetupError("Error pseudo installing " + extension)
-        
+
         os.chdir(self.script_dir)
 
     def prepare_packages(self):
@@ -782,7 +782,7 @@ class pyside_build(_build):
             self.update_rpath("{dist_dir}/PySide".format(**vars), executables)
 
     def prepare_packages_win32(self, vars):
-        pdbs = ['*.pdb'] if self.debug or self.build_type == 'RelWithDebInfo' else []       
+        pdbs = ['*.pdb'] if self.debug or self.build_type == 'RelWithDebInfo' else []
         # <install>/lib/site-packages/PySide/* -> <setup>/PySide
         copydir(
             "{site_packages_dir}/PySide",
@@ -809,7 +809,7 @@ class pyside_build(_build):
             copyfile(
                 "{build_dir}/shiboken/shibokenmodule/shiboken{dbgPostfix}.pdb",
                 "{dist_dir}/PySide/shiboken{dbgPostfix}.pdb",
-                vars=vars)        
+                vars=vars)
         # <install>/lib/site-packages/pysideuic/* -> <setup>/pysideuic
         copydir(
             "{site_packages_dir}/pysideuic",
@@ -868,7 +868,7 @@ class pyside_build(_build):
                 "libeay32.dll",
                 "ssleay32.dll"],
             force=False, vars=vars)
-        
+
         # <qt>/bin/*.dll -> <setup>/PySide
         copydir("{qt_bin_dir}", "{dist_dir}/PySide",
             filter=[
@@ -891,7 +891,7 @@ class pyside_build(_build):
             copydir("{qt_lib_dir}", "{dist_dir}/PySide",
                 filter=["*.pdb"],
                 recursive=False, vars=vars)
-            
+
         # I think these are the qt-mobility DLLs, at least some are,
         # so let's copy them too
         # <qt>/lib/*.dll -> <setup>/PySide
@@ -909,7 +909,7 @@ class pyside_build(_build):
             copydir("{qt_lib_dir}", "{dist_dir}/PySide",
                 filter=pdbs,
                 recursive=False, vars=vars)
-        
+
         # <qt>/plugins/* -> <setup>/PySide/plugins
         copydir("{qt_plugins_dir}", "{dist_dir}/PySide/plugins",
             filter=["*.dll"] + pdbs,
@@ -1005,6 +1005,7 @@ setup(
         'Programming Language :: Python :: 3.2',
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
         'Topic :: Database',
         'Topic :: Software Development',
         'Topic :: Software Development :: Code Generators',
@@ -1033,7 +1034,7 @@ setup(
         'bdist_egg': pyside_bdist_egg,
         'develop': pyside_develop,
     },
-    
+
     # Add a bogus extension module (will never be built here since we are
     # overriding the build command to do it using cmake) so things like
     # bdist_egg will know that there are extension modules and will name the
